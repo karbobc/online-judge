@@ -13,6 +13,7 @@ int* twoSum(int* nums, int numsSize, int target, int* returnSize) {
             if (target == nums[i] + nums[j]) {
                 *arr = i;
                 *(arr+1) = j;
+                return arr;
             }
         }
     }
