@@ -14,37 +14,22 @@
 int uniquePathsWithObstacles(int** grid, int m, int* n) {
     // define
     int paths;
-    int** dp = (int**) malloc(m * sizeof(int*));
-    for (int i = 0; i < m; i++) {
-        dp[i] = (int*) calloc((*n), sizeof(int));
-    }
+    int* dp = (int*) calloc(*n, sizeof(int));
     // find the unique paths with obstacle
+    dp[0] = grid[0][0] == 0 ? 1 : 0;
     for (int i = 0; i < m; i++) {
-        if (grid[i][0] == 1) {
-            break;
-        }
-        dp[i][0] = 1;
-    }
-    for (int j = 0; j < *n; j++) {
-        if (grid[0][j] == 1) {
-            break;
-        }
-        dp[0][j] = 1;
-    }
-    for (int i = 1; i < m; i++) {
-        for (int j = 1; j < *n; j++) {
+        for (int j = 0; j < *n; j++) {
             if (grid[i][j] == 1) {
-                dp[i][j] = 0;
+                dp[j] = 0;
                 continue;
             }
-            dp[i][j] = dp[i-1][j] + dp[i][j-1];
+            if (j > 0) {
+                dp[j] += dp[j-1];
+            }
         }
     }
-    paths = dp[m-1][(*n)-1];
+    paths = dp[(*n)-1];
     // free memory and then return
-    for (int i = 0; i < m; i++) {
-        free(dp[i]);
-    }
     free(dp);
     return paths;
 }
