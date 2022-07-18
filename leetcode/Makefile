@@ -1,7 +1,7 @@
 
 CC				:= gcc
 RM				:= rm -f
-CFLAGS		?=
+CFLAGS		?= -Wall
 LDFLAGS		?=
 C_FILES		?= $(shell ls -t | grep "\.c" | head -n 1)
 OBJ_FILES	:= $(patsubst %.c,%.o,$(C_FILES))
