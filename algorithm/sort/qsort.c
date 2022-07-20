@@ -26,16 +26,13 @@ void sort(int* arr, int left, int right) {
             while (arr[j] >= pivot && i < j) {
                 j--;
             }
+            arr[i] = arr[j];
             while (arr[i] <= pivot && i < j) {
                 i++;
             }
-            if (i < j) {
-                swap(arr[i], arr[j]);
-            }
+            arr[j] = arr[i];
         }
-        if (left < i) {
-            swap(arr[left], arr[i]);
-        }
+        arr[i] = pivot;
         sort(arr, left, i - 1);
         sort(arr, i + 1, right);
     }
