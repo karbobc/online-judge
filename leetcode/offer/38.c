@@ -3,9 +3,34 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAX_SIZE (1e4 + 4)
+#define MAX_SIZE (1e5 + 4)
 #define log(S, ...) printf(S, ##__VA_ARGS__)
 #define debug(S, ...) fprintf(stderr, S"\n", ##__VA_ARGS__)
+
+/**
+ * Quick sort.
+ */
+void sort(char* s, int l, int r) {
+  if (l >= r) {
+    return;
+  }
+  int i = l;
+  int j = r;
+  char pivot = s[l];
+  while (i < j) {
+    while (i < j && s[j] >= pivot) {
+      j--;
+    }
+    s[i] = s[j];
+    while (i < j && s[i] <= pivot) {
+      i++;
+    }
+    s[j] = s[i];
+  }
+  s[i] = pivot;
+  sort(s, l, i-1);
+  sort(s, i+1, r);
+}
 
 void dfs(char* temp, char* s, bool* visited, char** arr, int *returnSize) {
   int n = strlen(s);
@@ -16,7 +41,7 @@ void dfs(char* temp, char* s, bool* visited, char** arr, int *returnSize) {
     return;
   }
   for (int i = 0; i < n; i++) {
-    if (visited[i]) {
+    if (visited[i] || (i > 0 && s[i] == s[i-1] && !visited[i-1])) {
       continue;
     }
     visited[i] = true;
@@ -32,18 +57,24 @@ char** permutation(char* s, int* returnSize) {
   // initialize
   *returnSize = 0;
   int n = strlen(s);
+  char* str = malloc((n+1) * sizeof(*str));
+  str[0] = '\0';;
+  strcpy(str, s);
+  sort(str, 0, n-1);
   char* temp = malloc((n+1) * sizeof(*temp));
   temp[0] = '\0';
   char** arr = malloc(MAX_SIZE * sizeof(*arr));
   bool* visited = malloc(n * sizeof(*visited));
   memset(visited, false, n * sizeof(*visited));
   // DFS
-  dfs(temp, s, visited, arr, returnSize);
+  dfs(temp, str, visited, arr, returnSize);
   // free and return
   free(visited);
   visited = NULL;
   free(temp);
   temp = NULL;
+  free(str);
+  str = NULL;
   return arr;
 }
 
