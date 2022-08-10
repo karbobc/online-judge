@@ -9,74 +9,87 @@
 #define debug(S, ...) fprintf(stderr, S"\n", ##__VA_ARGS__)
 #define max(a, b) (a > b ? a : b)
 
-typedef struct Deque {
-  int head;
-  int tail;
-  int size;
-  int capacity;
-  int* data;
+typedef struct DequeNode {
+  int val;
+  struct DequeNode* prev;
+  struct DequeNode* next;
+} DequeNode;
+
+typedef struct {
+  DequeNode* front;
+  DequeNode* rear;
 } Deque;
 
 Deque* createQueue() {
   Deque* deque = malloc(sizeof(*deque));
-  deque->head = -1;
-  deque->tail = -1;
-  deque->size = 0;
-  deque->capacity = MAX_SIZE;
-  deque->data = malloc(deque->capacity * sizeof(*(deque->data)));
+  deque->front = NULL;
+  deque->rear = NULL;
   return deque;
 }
 
 bool isQueueEmpty(Deque* deque) {
-  return deque->size == 0;
+  return deque->front == NULL && deque->rear == NULL;
 }
 
 void push(Deque* deque, int val) {
-  deque->tail = (deque->tail + 1) % deque->capacity;
-  deque->data[deque->tail] = val;
+  DequeNode* node = malloc(sizeof(*node));
+  node->val = val;
   if (isQueueEmpty(deque)) {
-    deque->head = deque->tail;
+    node->prev = NULL;
+    node->next = NULL;
+    deque->front = node;
+    deque->rear = node;
+    return;
   }
-  deque->size++;
+  node->prev = deque->rear;
+  node->next = deque->rear->next;
+  deque->rear->next = node;
+  deque->rear = deque->rear->next;
 }
 
 void popFirst(Deque* deque) {
   if (isQueueEmpty(deque)) {
     return;
   }
-  deque->size--;
-  deque->head = (deque->head + 1) % deque->capacity;
-  if (isQueueEmpty(deque)) {
-    deque->tail = deque->head;
+  DequeNode* node = deque->front;
+  if (deque->front == deque->rear) {
+    deque->front = NULL;
+    deque->rear = NULL;
+  } else {
+    deque->front = node->next;
+    deque->front->prev = node->prev;
   }
+  free(node);
 }
 
 void popLast(Deque* deque) {
   if (isQueueEmpty(deque)) {
     return;
   }
-  deque->size--;
-  if (--deque->tail < 0) {
-    deque->tail += deque->capacity;
+  DequeNode* node = deque->rear;
+  if (deque->front == deque->rear) {
+    deque->front = NULL;
+    deque->rear = NULL;
+  } else {
+    deque->rear = node->prev;
+    deque->rear->next = node->next;
   }
-  if (isQueueEmpty(deque)) {
-    deque->head = deque->tail;
-  }
+  free(node);
 }
 
 int peekFirst(Deque* deque) {
-  return deque->data[deque->head];
+  return deque->front->val;
 }
 
 int peekLast(Deque* deque) {
-  return deque->data[deque->tail];
+  return deque->rear->val;
 }
 
 void freeQueue(Deque* deque) {
-  free(deque->data);
-  deque->data = NULL;
+  while (!isQueueEmpty(deque)) {
+    popFirst(deque);
+  }
   free(deque);
-  deque = NULL;
 }
 
 int* maxSlidingWindow(int* nums, int numsSize, int k, int* returnSize) {
@@ -87,14 +100,14 @@ int* maxSlidingWindow(int* nums, int numsSize, int k, int* returnSize) {
   }
   Deque* deque = createQueue();
   for (int i = 0; i < k; i++) {
-    while (!isQueueEmpty(deque) && nums[i] >= nums[peekLast(deque)]) {
+    while (!isQueueEmpty(deque) && nums[i] > nums[peekLast(deque)]) {
       popLast(deque);
     }
     push(deque, i);
   }
   arr[(*returnSize)++] = nums[peekFirst(deque)];
   for (int i = k; i < numsSize; i++) {
-    while (!isQueueEmpty(deque) && nums[i] >= nums[peekLast(deque)]) {
+    while (!isQueueEmpty(deque) && nums[i] > nums[peekLast(deque)]) {
       popLast(deque);
     }
     push(deque, i);
@@ -126,9 +139,7 @@ int main() {
   }
   // free memory
   free(nums);
-  nums = NULL;
   free(arr);
-  arr = NULL;
   return 0;
 }
 
