@@ -3,33 +3,142 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAX_SIZE 1e3 + 2
+#define MAX_SIZE (1e2 + 2)
 #define log(S, ...) printf(S, ##__VA_ARGS__)
+#define debug(S, ...) fprintf(stderr, S"\n", ##__VA_ARGS__)
 
-typedef struct TreeNode TreeNode;
-struct TreeNode {
+typedef struct TreeNode {
     int val;
-    TreeNode* left;
-    TreeNode* right;
-};
+    struct TreeNode* left;
+    struct TreeNode* right;
+} TreeNode, Tree;
 
-typedef struct Stack Stack;
-struct Stack {
-    TreeNode* val;
-    Stack* next;
-};
+typedef struct {
+  int size;
+  int capacity;
+  TreeNode** data;
+  int front;
+  int rear;
+} Queue;
 
 /**
- * DFS traversal the binary tree.
+ * Create a queue.
  */
-void dfs(TreeNode* node, int* returnSize, int* arr) {
-    if (node == NULL) {
-        return;
-    }
-    dfs(node->left, returnSize, arr);
-    arr[(*returnSize)++] = node->val;
-    dfs(node->right, returnSize, arr);
+Queue* queueCreate() {
+  Queue* queue = malloc(sizeof(*queue));
+  queue->size = 0;
+  queue->capacity = 1 << 4;
+  queue->data = malloc(queue->capacity * sizeof(**(queue->data)));
+  queue->front = -1;
+  queue->rear = -1;
+  return queue;
+}
 
+/**
+ * True is returned when the queue is empty.
+ */
+bool isQueueEmpty(Queue* queue) {
+  return queue->size == 0;
+}
+
+/**
+ * True is returned when the queue is full.
+ */
+bool isQueueFull(Queue* queue) {
+  return queue->size == queue->capacity;
+}
+
+/**
+ * Push a tree node into the queue.
+ */
+void queuePush(Queue* queue, TreeNode* data) {
+  // double capacity
+  if (isQueueFull(queue)) {
+    queue->capacity += queue->capacity;
+    TreeNode** a = malloc(queue->capacity * sizeof(**a));
+    int n = queue->front;
+    int size = queue->size;
+    memcpy(a, queue->data+n, (size-n) * sizeof(**a));
+    memcpy(a+(size-n), queue->data, n * sizeof(**a));
+    queue->front = 0;
+    queue->rear = size-1;
+  }
+  // push
+  queue->rear = (queue->rear + 1) % queue->capacity;
+  queue->data[queue->rear] = data;
+  if (isQueueEmpty(queue)) {
+    queue->front = queue->rear;
+  }
+  queue->size++;
+}
+
+/**
+ * Pop a tree node from the queue.
+ */
+TreeNode* queuePop(Queue* queue) {
+  if (isQueueEmpty(queue)) {
+    return NULL;
+  }
+  TreeNode* data = queue->data[queue->front];
+  queue->front = (queue->front + 1) % queue->capacity;
+  queue->size--;
+  return data;
+}
+
+/**
+ * Clear and free the queue.
+ */
+void queueFree(Queue* queue) {
+  while (!isQueueEmpty(queue)) {
+    queuePop(queue);
+  }
+  free(queue);
+}
+
+/**
+ * Build the binary tree.
+ */
+TreeNode* buildTree() {
+  TreeNode* root = NULL;
+  char* s = (char*) malloc((1 << 4) * sizeof(*s));
+  Queue* queue = queueCreate();
+  if (~scanf("%s", s) && strcmp("null", s) != 0) {
+    root = malloc(sizeof(*root));
+    root->val = atoi(s);
+    queuePush(queue, root);
+  }
+  while (!isQueueEmpty(queue)) {
+    TreeNode* node = queuePop(queue);
+    node->left = NULL;
+    node->right = NULL;
+    if (~scanf("%s", s) && strcmp("null", s) != 0) {
+      node->left = malloc(sizeof(*(node->left)));
+      node->left->val = atoi(s);
+      queuePush(queue, node->left);
+    }
+    if (~scanf("%s", s) && strcmp("null", s) != 0) {
+      node->right = malloc(sizeof(*(node->right)));
+      node->right->val = atoi(s);
+      queuePush(queue, node->right);
+    }
+  }
+  free(s);
+  queueFree(queue);
+  return root;
+}
+
+/**
+ * Delete a binary tree.
+ */
+void deleteTree(Tree* root) {
+  if (root == NULL) {
+    return;
+  }
+  deleteTree(root->left);
+  deleteTree(root->right);
+  debug("deleted %d", root->val);
+  free(root);
+  root = NULL;
 }
 
 /**
@@ -37,90 +146,41 @@ void dfs(TreeNode* node, int* returnSize, int* arr) {
  */
 int* inorderTraversal(TreeNode* root, int* returnSize) {
     *returnSize = 0;
-    int* arr = (int*) malloc(MAX_SIZE * sizeof(int));
-    dfs(root, returnSize, arr);
+    int* arr = malloc(MAX_SIZE * sizeof(*arr));
+    while (root != NULL) {
+      if (root->left == NULL) {
+        arr[(*returnSize)++] = root->val;
+        root = root->right;
+        continue;
+      }
+      TreeNode* node = root->left;
+      while (node->right != NULL && node->right != root) {
+        node = node->right;
+      }
+      if (node->right == NULL) {
+        node->right = root;
+        root = root->left;
+      } else {
+        arr[(*returnSize)++] = root->val;
+        node->right = NULL;
+        root = root->right;
+      }
+    }
     return arr;
-}
-
-/**
- * Build the binary tree.
- */
-TreeNode* buildTree() {
-    TreeNode* root = NULL;
-    char* s = (char*) malloc(MAX_SIZE * sizeof(char));
-    scanf("%s", s);
-    //  NULL point is returned when the s string is #
-    if (strcmp(s, "#") != 0) {
-        root = (TreeNode*) malloc(sizeof(TreeNode));
-        root->val = atoi(s);
-        root->left = buildTree();
-        root->right = buildTree();
-    }
-    free(s);
-    return root;
-}
-
-/**
- * Push a tree node to the stack.
- */
-void push(Stack* stack, TreeNode* val) {
-    Stack* node = (Stack*) calloc(1, sizeof(Stack));
-    node->val = val;
-    node->next = stack->next;
-    stack->next = node;
-}
-
-/**
- * Pop a tree node from the stack.
- */
-TreeNode* pop(Stack* stack) {
-    if (stack->next == NULL) {
-        return NULL;
-    }
-    Stack* node = stack->next;
-    TreeNode* val = node->val;
-    stack->next = node->next;
-    free(node);
-    return val;
-}
-
-/**
- * true is returned when the stack is empty, otherwise, false is returned.
- */
-bool isEmpty(Stack* stack) {
-    return stack->next == NULL;
 }
 
 int main() {
     // define
-    int* returnSize;
-    int* arr;
+    int returnSize;
+    int* arr = NULL;
     TreeNode* root = buildTree();
-    Stack* stack = (Stack*) calloc(1, sizeof(Stack));
     // output
-    arr = inorderTraversal(root, returnSize);
-    for (int i = 0; i < *returnSize; i++) {
+    arr = inorderTraversal(root, &returnSize);
+    for (int i = 0; i < returnSize; i++) {
         log("%d\n", arr[i]);
     }
     // free memory
     free(arr);
-    while (root != NULL) {
-        // push the left tree node into the stack
-        while (root != NULL) {
-            push(stack, root);
-            root = root->left;
-        }
-        // pop a tree node when the stack is not empty
-        if (!isEmpty(stack)) {
-            root = pop(stack);
-            // free memory for a tree node
-            while (root->right == NULL && !isEmpty(stack)) {
-                free(root);
-                root = pop(stack);
-            }
-            root = root->right;
-        }
-    }
-    free(stack);
+    deleteTree(root);
     return 0;
 }
